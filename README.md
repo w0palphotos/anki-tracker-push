@@ -1,12 +1,42 @@
 # Anki Tracker Push
 
-An Anki add-on that pushes your daily review counts and live study presence to a tracker endpoint (such as a personal website or portfolio).
+Pushes your Anki review activity to a tracker API in real time, so your portfolio site can show a live Discord-style presence card and a GitHub-style review heatmap without manual exports.
 
-Forked from [Monacraft/AnkiDiscord](https://github.com/Monacraft/AnkiDiscord). Discord client RPC (`pypresence`) was replaced with direct HTTP POST updates, allowing any web frontend to show live Discord-style activity cards and GitHub-style heatmaps without running Discord on the desktop.
+Forked from [Monacraft/AnkiDiscord](https://github.com/Monacraft/AnkiDiscord). Discord RPC (`pypresence`) was removed; updates are now plain HTTP POSTs.
+
+## Quick start
+
+```sh
+# 1. Install into Anki
+cp -r . ~/.local/share/Anki2/addons21/anki-tracker-push
+
+# 2. Restart Anki, then open config
+#    Tools -> Add-ons -> Anki Tracker Push -> Config
+
+# 3. Set your endpoint and token
+{
+  "apiUrl": "https://your-domain.com/api/anki",
+  "token": "your-shared-secret",
+  "minSecondsBetweenPushes": 15
+}
+```
+
+Review a card. The push fires within `minSecondsBetweenPushes` seconds.
+
+## Features
+
+| Feature | What it does |
+|---|---|
+| Live presence | Reports app state (reviewing, browsing, editing, menus), cards left, cards done today, session start time |
+| Accurate counts | Reads the root deck node to avoid double-counting nested decks |
+| Real-time push | Fires on card answers, state changes, syncs, and a 15 s heartbeat |
+| Heatmap history | Buckets reviews across 371 days using Anki's `day_cutoff` rollover |
+| Streak logic | Counts consecutive active days; today at 0 does not break the streak |
+| Card inventory | Sends total cards in the collection alongside review history |
 
 ## What it sends
 
-### Live update payload
+### Live update
 
 ```json
 {
@@ -27,55 +57,64 @@ Forked from [Monacraft/AnkiDiscord](https://github.com/Monacraft/AnkiDiscord). D
 }
 ```
 
-### Shutdown payload
+### Shutdown ping
 
-When Anki closes, the add-on sends a lightweight presence update so the web card updates to offline immediately without touching stored review history:
+When Anki closes, a lightweight offline signal is sent so the web card flips to offline immediately. Stored review history is not touched.
 
 ```json
 {
   "v": 1,
-  "presence": {
-    "status": "offline"
-  }
+  "presence": { "status": "offline" }
 }
 ```
 
-## Features
+## Persistence: Upstash Redis (optional)
 
-- **Live presence**: reports current app state (reviewing, browsing decks, editing, menus), cards left, cards reviewed today, and start timestamp.
-- **Accurate counts**: reads the root deck node directly to avoid double-counting due cards across nested decks.
-- **Real-time push**: triggers on card answers, navigation changes, profile syncs, and a 15-second background heartbeat loop.
-- **Review heatmap**: aggregates review timestamps over the last 371 days into daily buckets matching Anki's custom rollover cutoff (`day_cutoff`).
-- **Streak calculation**: counts continuous active days, allowing the current day to start at 0 without breaking the streak.
-- **Total card inventory**: sends total cards owned in collection alongside review history.
+The tracker API runs in one of two modes:
 
-## Installation
+| Mode | Data survives Anki close? | Setup |
+|---|---|---|
+| In-memory | No | Nothing |
+| Upstash Redis | Yes | Set env vars on the server |
 
-1. Copy this folder into your Anki add-on directory (`Tools -> Add-ons -> View Files`), or install the `.ankiaddon` package via `Tools -> Add-ons -> Install from file...`.
-2. Restart Anki.
-3. Open `Tools -> Add-ons -> Anki Tracker Push -> Config` and set your `apiUrl` and `token`.
-4. Start reviewing. Updates post automatically.
+Without Redis, the API keeps stats in process memory. When Anki closes and the serverless function scales down, the data is gone. Your site shows a "Waiting for Anki sync" state until you open Anki again.
 
-## Configuration
+With Redis, the last known state persists, so your portfolio shows the heatmap and streak even while Anki is closed.
 
-In `config.json`:
+### Configure Redis on the server
 
-```json
-{
-  "apiUrl": "https://your-domain.com/api/anki",
-  "token": "your-secret-token",
-  "minSecondsBetweenPushes": 15
-}
+Set these on your host (example for Vercel):
+
+```sh
+vercel env add UPSTASH_REDIS_REST_URL production
+vercel env add UPSTASH_REDIS_REST_TOKEN production
+vercel env add ANKI_TRACKER_TOKEN production
 ```
 
-- `apiUrl`: full HTTPS endpoint for your tracker API (e.g. Vercel serverless function).
-- `token`: bearer token verified by your API endpoint via `Authorization: Bearer <token>`.
-- `minSecondsBetweenPushes`: minimum throttle interval for live pushes (default: 15 seconds).
+Or add them to `.env` locally:
+
+```env
+UPSTASH_REDIS_REST_URL=https://your-instance.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-upstash-token
+ANKI_TRACKER_TOKEN=your-shared-secret
+```
+
+The API falls back to in-memory mode when the Redis vars are absent, so you can run it with no database if you only need live data while Anki is open.
+
+## Example output
+
+### Anki closed, stats served from Redis
+
+![Anki closed, stats persisted in Redis](docs/anki-closed-redis.png)
+
+### Anki open, live Discord presence card
+
+![Anki open, live Discord presence card](docs/anki-open-live.png)
 
 ## Testing
-
-Run unit tests for bucketing and streak calculation:
 
 ```sh
 python3 tests/test_stats.py
 ```
+
+Covers bucket boundaries, the 371-day window, empty buckets, and the streak rule (today still empty does not reset yesterday's streak).

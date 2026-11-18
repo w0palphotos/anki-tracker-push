@@ -1,5 +1,19 @@
 # Anki Tracker Push: Configuration
 
-- **apiUrl**: full URL of the tracker endpoint, e.g. `https://your-domain.com/api/anki`.
-- **token**: the secret token verified by the server. Sent in the request header as `Authorization: Bearer <token>`.
-- **minSecondsBetweenPushes**: minimum gap between review pushes (default: 15). The add-on also pushes on state changes, profile open, profile close, and every 15 seconds during active sessions.
+| Key | Purpose | Example |
+|---|---|---|
+| `apiUrl` | Full HTTPS URL of the tracker API endpoint | `https://your-domain.com/api/anki` |
+| `token` | Shared secret sent as `Authorization: Bearer <token>` | `your-shared-secret` |
+| `minSecondsBetweenPushes` | Throttle between live pushes (default: 15) | `15` |
+
+Example `config.json`:
+
+```json
+{
+  "apiUrl": "https://your-domain.com/api/anki",
+  "token": "your-shared-secret",
+  "minSecondsBetweenPushes": 15
+}
+```
+
+The add-on also pushes on profile open, profile close, state changes, and after every sync, regardless of the throttle setting.
