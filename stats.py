@@ -1,4 +1,6 @@
-"""Day bucketing for review timestamps. No Anki imports, so it is testable."""
+"""Day bucketing and presence helpers for Anki Tracker Push."""
+
+from __future__ import annotations
 
 import math
 from datetime import datetime, timezone
@@ -9,8 +11,7 @@ MAX_DAYS = 371
 def day_buckets(timestamps, day_start, days=MAX_DAYS):
     """Map review unix timestamps (seconds) to [["YYYY-MM-DD", count], ...].
 
-    day_start is the unix time the current Anki day began
-    (mw.col.sched.day_cutoff - 86400). Buckets run from that day backwards.
+    day_start is unix timestamp of when current Anki day started (day_cutoff - 86400).
     """
     counts = {}
     for ts in timestamps:
@@ -38,10 +39,10 @@ def current_streak(days):
     return streak
 
 
-def build_payload(timestamps, day_start, now=None):
+def build_payload(timestamps, day_start, presence=None, total_cards=None, now=None):
     days = day_buckets(timestamps, day_start)
     now = now or datetime.now(timezone.utc)
-    return {
+    data = {
         "v": 1,
         "days": days,
         "today": days[0][1],
@@ -49,3 +50,8 @@ def build_payload(timestamps, day_start, now=None):
         "currentStreak": current_streak(days),
         "updatedAt": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
+    if total_cards is not None:
+        data["totalCards"] = total_cards
+    if presence is not None:
+        data["presence"] = presence
+    return data
