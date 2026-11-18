@@ -1,6 +1,5 @@
-# Anki Tracker Push — config
+# Anki Tracker Push: Configuration
 
-- **apiUrl** — full URL of the tracker endpoint, e.g. `https://your-site.vercel.app/api/anki`.
-- **token** — the `ANKI_TRACKER_TOKEN` value set on the server. Sent as `Authorization: Bearer …`.
-- **minSecondsBetweenPushes** — minimum gap between pushes while reviewing. Push also runs on
-  profile open, profile close, and after a sync.
+- **apiUrl**: full URL of the tracker endpoint, e.g. `https://your-domain.com/api/anki`.
+- **token**: the secret token verified by the server. Sent in the request header as `Authorization: Bearer <token>`.
+- **minSecondsBetweenPushes**: minimum gap between review pushes (default: 15). The add-on also pushes on state changes, profile open, profile close, and every 15 seconds during active sessions.
