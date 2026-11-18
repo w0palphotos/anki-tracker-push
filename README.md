@@ -1,34 +1,49 @@
-# Discord Rich Presence for Anki (AnkiDiscord)
+# Anki Tracker Push
 
-### Description
-This add-on will link Anki to Discord using Rich Presence.
-It will show what you are currently doing on Anki (Main menu, browsing, adding or reviewing).
-It will also show how many cards you have due, how many you have done today and how long you've been on Anki for.
+An Anki add-on that pushes your daily review counts to a public tracker endpoint
+(the Anki heatmap on a website) so the site updates without a manual export.
 
+Forked from [Monacraft/AnkiDiscord](https://github.com/Monacraft/AnkiDiscord).
+Discord Rich Presence and the vendored `pypresence` were removed; the presence
+update is now a single HTTP POST.
 
-A great way to share your progress with friends or motivate each other online
+## What it sends
 
-*Please rate and review this on [AnkiWeb](https://ankiweb.net/shared/info/1133851639)*
+```json
+{
+  "v": 1,
+  "days": [["2026-11-18", 46], ["2026-11-17", 33]],
+  "today": 46,
+  "totalReviews": 3111,
+  "currentStreak": 58,
+  "updatedAt": "2026-11-18T12:00:00Z"
+}
+```
 
+Only review counts per day, plus a timestamp. No card text, no deck names, no
+account data. `days` covers the last 371 days.
 
-### Appearance
-![What it looks like in discord](https://raw.githubusercontent.com/Monacraft/AnkiDiscord/master/preview.png)
+## Install
 
-### Installation 
-[Here is our page on AnkiWeb](https://ankiweb.net/shared/info/1133851639)
+1. Copy this folder into `Tools → Add-ons → View Files` (the `addons21` directory),
+   or zip it and use *Install from file*.
+2. Restart Anki.
+3. `Tools → Add-ons → Anki Tracker Push → Config` and set `apiUrl` and `token`.
+4. Review a card. A push goes out within `minSecondsBetweenPushes` seconds.
 
-Alternatively you can directly install us inside anki using the add-on code: **1133851639**
+Pushes also fire on profile open, profile close, and after a sync.
 
-### Planned Features
- - Adding settings to configure how Anki is displayed on Discord
- - Adding other trackers such as streak (in days), average daily reviews, total mature cards etc.
+## How days are bucketed
 
-### Update Log
- - 2.0: Support for new version of Anki, switch to pypresence, fix of all bugs in 1.1
- - 1.1: Fixed error when discord is not running
- - 1.0: Base add-on
+Anki's day boundary is `mw.col.sched.day_cutoff`, not midnight, so the add-on
+buckets reviews by `day_cutoff - 86400 + n * 86400`. A review after the rollover
+counts for the next day, exactly like Anki's own stats.
 
-### Contributing/Issues
-Please post issues on github and not on Anki's site.
+## Test
 
-Feel free to contact me if you have questions or wish to contribute.
+```sh
+python3 tests/test_stats.py
+```
+
+Covers bucket boundaries, the 371-day window, empty buckets, and the streak rule
+(today still empty does not reset yesterday's streak).
