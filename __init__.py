@@ -128,17 +128,17 @@ def _get_presence(status="online"):
 
 
 def _collect(status="online"):
-    col = mw.col
     presence = _get_presence(status)
-    if not col:
-        now = datetime.now(timezone.utc)
+    if status == "offline":
         return {
             "v": 1,
-            "days": [],
-            "today": 0,
-            "totalReviews": 0,
-            "currentStreak": 0,
-            "updatedAt": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "presence": {"status": "offline"},
+        }
+
+    col = mw.col
+    if not col:
+        return {
+            "v": 1,
             "presence": presence,
         }
 
