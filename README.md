@@ -1,6 +1,6 @@
 # Anki Tracker Push
 
-Pushes your Anki review activity to a tracker API in real time, so your portfolio site can show a live Discord-style presence card and a GitHub-style review heatmap without manual exports.
+Pushes your Anki review activity to a tracker API in real time, so your portfolio site can show a live Discord-style presence card and a GitHub-style review heatmap without manual exports. The presence card is **persistent** — when Anki closes it stays on the page in an idle state instead of disappearing.
 
 Forked from [Monacraft/AnkiDiscord](https://github.com/Monacraft/AnkiDiscord). Discord RPC (`pypresence`) was removed; updates are now plain HTTP POSTs.
 
@@ -67,6 +67,19 @@ When Anki closes, a lightweight offline signal is sent so the web card flips to 
   "presence": { "status": "offline" }
 }
 ```
+
+## Web integration
+
+Full guide: **[docs/web-integration.md](docs/web-integration.md)** — architecture,
+API reference (`GET`/`POST`, auth, 45 s presence freshness, storage modes),
+frontend polling pattern, the review heatmap, and how to reuse the
+Discord-style presence card in your own site.
+
+A ready-to-copy card component ships at
+**[docs/AnkiDiscordCard.vue](docs/AnkiDiscordCard.vue)** — a plain Vue 3 SFC
+with no extra dependencies. It renders the live activity when Anki is open
+(state, cards left, elapsed timer) and a persistent idle card when it's
+closed. See the guide for the `presence` prop shape and usage snippets.
 
 ## Persistence: Upstash Redis (optional)
 
